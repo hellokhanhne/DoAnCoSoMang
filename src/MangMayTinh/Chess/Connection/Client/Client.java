@@ -20,7 +20,7 @@ public class Client extends javax.swing.JFrame implements ChessboardInterface {
     Socket socket = null;
     int port = 0;
     String host = "";
-    ObjectOutputStream sender = null;
+    static ObjectOutputStream sender = null;
     ObjectInputStream receiver = null;
     String myName = "";
     String secondPlayerName = "";
@@ -151,9 +151,8 @@ public class Client extends javax.swing.JFrame implements ChessboardInterface {
         }
     }
 
-    public <T> void sendMessageToServer(MessageType type, T data) {
+    public static <T> void sendMessageToServer(MessageType type, T data) {
         try {
-        	System.out.println(sender.toString());
             sender.writeObject(type);
             sender.writeObject(data);
         } catch (Exception e) {
@@ -358,7 +357,7 @@ public class Client extends javax.swing.JFrame implements ChessboardInterface {
             this.sender = new ObjectOutputStream(this.socket.getOutputStream());
             this.receiver = new ObjectInputStream(this.socket.getInputStream());
             this.sendMessageToServer(MessageType.chooseRoomRequest, "");
-            new Room(this.socket,  this.receiver).roomThread.start();
+            new Room(this.socket,  this.receiver);
             this.host = host;
             this.port = port;
             this.myName = name;

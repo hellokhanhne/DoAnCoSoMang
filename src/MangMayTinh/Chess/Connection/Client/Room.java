@@ -41,10 +41,7 @@ public class Room extends JFrame implements ActionListener {
 
 	int ROOM;
 	Socket socket = null;
-
 	ObjectInputStream receiver = null;
-
-	Container cn;
 	Thread roomThread;
 	JPanel pn;
 	JButton[] bt;
@@ -59,7 +56,7 @@ public class Room extends JFrame implements ActionListener {
 		this.ROOM = 12;
 		this.bt = new JButton[13];
 		this.stt = new String[13];
-		this.cn = this.init();
+		this.init();
 		
 	}
 
@@ -91,14 +88,7 @@ public class Room extends JFrame implements ActionListener {
 		this.setLocationRelativeTo(null);
 		this.setResizable(false);
 		
-		new Thread(new Runnable() {
-			
-			@Override
-			public void run() {
-			Room.this.init();
-				
-			}
-		});
+		
 
 		roomThread = new Thread(new Runnable() {
 
@@ -110,7 +100,7 @@ public class Room extends JFrame implements ActionListener {
 						switch (type) {
 						case rooms:
 							System.out.println(type);
-							@SuppressWarnings("unchecked") HashMap<String, MangMayTinh.Chess.Model.Room> listRooms = (HashMap<String, MangMayTinh.Chess.Model.Room>) receiver
+						 @SuppressWarnings("unchecked") HashMap<String, MangMayTinh.Chess.Model.Room> listRooms = (HashMap<String, MangMayTinh.Chess.Model.Room>) receiver
 									.readObject();
 							for (HashMap.Entry<String, MangMayTinh.Chess.Model.Room> set : listRooms.entrySet()) {
 
@@ -134,6 +124,8 @@ public class Room extends JFrame implements ActionListener {
 
 			}
 		});
+		
+		roomThread.start();
 
 		return cn;
 	}
@@ -161,30 +153,10 @@ public class Room extends JFrame implements ActionListener {
 	public void actionPerformed(final ActionEvent e) {
 		final int K = Integer.parseInt(e.getActionCommand());
 		final int I = this.stt[K].charAt(0) - '0';
-		  try {
-//	        ObjectOutputStream send = new ObjectOutputStream(this.socket.getOutputStream());
-//	        send.writeObject(MessageType.updateRoom);
-//	        send.writeObject("" + K);
-			  PrintWriter printWriter = new PrintWriter(this.socket.getOutputStream());
-			  printWriter.write(MessageType.updateRoom.toString());
-	        } catch (Exception exception) {
-	            System.out.print("Send data Error: Client");
-	            System.out.println(exception.toString());
-	        }
-//		if (I == 0) {
-//			this.writeStatus(K, "1" + this.stt[K].substring(1));
-//
-//		} else if (I == 1) {
-//			this.writeStatus(K, "2" + this.stt[K].substring(1));
-//
-//		} else {
-//
-//		}
+		Client.sendMessageToServer(MessageType.updateRoom, "" + K);
 	}
 
-	public static void main(final String[] args) {
-//		new Room(null).roomThread.start();
-	}
+
 
 	
 }
