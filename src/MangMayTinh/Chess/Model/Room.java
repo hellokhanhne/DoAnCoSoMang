@@ -15,6 +15,8 @@ public class Room  implements Serializable {
 		this.id = id;
 		this.players =  new ArrayList<>();
 	}
+	
+	
 
 	public String getStatus() {
 		return status;
@@ -40,9 +42,8 @@ public class Room  implements Serializable {
 		this.players = players;
 	}
 	
-	public void addPlayer(Player player) {
+	public synchronized void addPlayer(Player player) {
 		this.players.add(player);
-		this.status = "" + (Integer.parseInt(this.status) + 1);
 	}
 
 	@Override
