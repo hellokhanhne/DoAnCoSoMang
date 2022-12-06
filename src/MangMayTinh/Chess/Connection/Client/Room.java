@@ -41,23 +41,22 @@ public class Room extends JFrame implements ActionListener {
 
 	int ROOM;
 	Socket socket = null;
+	HashMap<String, MangMayTinh.Chess.Model.Room> listRooms = new HashMap<>();
 	ObjectInputStream receiver = null;
 	Thread roomThread;
 	JPanel pn;
 	JButton[] bt;
 	String[] stt;
 
-	public Room(Socket socket, ObjectInputStream receiver) {
+	public Room(Socket socket,ObjectInputStream receiver) throws IOException {
 		super("Chess - Khanh Sky");
 		this.socket = socket;
-	
 		this.receiver = receiver;
-	
 		this.ROOM = 12;
 		this.bt = new JButton[13];
 		this.stt = new String[13];
 		this.init();
-		
+
 	}
 
 	public Container init() {
@@ -87,8 +86,6 @@ public class Room extends JFrame implements ActionListener {
 		this.setDefaultCloseOperation(3);
 		this.setLocationRelativeTo(null);
 		this.setResizable(false);
-		
-		
 
 		roomThread = new Thread(new Runnable() {
 
@@ -100,12 +97,14 @@ public class Room extends JFrame implements ActionListener {
 						switch (type) {
 						case rooms:
 							System.out.println(type);
-						 @SuppressWarnings("unchecked") HashMap<String, MangMayTinh.Chess.Model.Room> listRooms = (HashMap<String, MangMayTinh.Chess.Model.Room>) receiver
+							@SuppressWarnings("unchecked")
+							HashMap<String, MangMayTinh.Chess.Model.Room> listRooms = (HashMap<String, MangMayTinh.Chess.Model.Room>) receiver
 									.readObject();
+							Room.this.listRooms = listRooms;
 							for (HashMap.Entry<String, MangMayTinh.Chess.Model.Room> set : listRooms.entrySet()) {
 
 								MangMayTinh.Chess.Model.Room roomTemp = (MangMayTinh.Chess.Model.Room) set.getValue();
-								int tempId =Integer.parseInt(roomTemp.getId());
+								int tempId = Integer.parseInt(roomTemp.getId());
 								if (tempId <= 12) {
 									Room.this.stt[tempId] = roomTemp.getStatus();
 									Room.this.bt[tempId].setText(Room.this.stt[tempId]);
@@ -124,7 +123,7 @@ public class Room extends JFrame implements ActionListener {
 
 			}
 		});
-		
+
 		roomThread.start();
 
 		return cn;
@@ -133,8 +132,6 @@ public class Room extends JFrame implements ActionListener {
 	public String getStatusRoom(final int room) {
 		return null;
 	}
-
-
 
 	private Icon getIcon(final String str) {
 		Image image = null;
@@ -152,11 +149,23 @@ public class Room extends JFrame implements ActionListener {
 	@Override
 	public void actionPerformed(final ActionEvent e) {
 		final int K = Integer.parseInt(e.getActionCommand());
-		final int I = this.stt[K].charAt(0) - '0';
+		if(listRooms.get( "" + K) != null && listRooms.get("" + K).getStatus().equals("20")) {
+			JOptionPane.showMessageDialog(null, "This room already has enough players. Please choose another room.");
+			return;
+		}
 		Client.sendMessageToServer(MessageType.updateRoom, "" + K);
+		Ready ready = null;
+		try {
+			ready = new Ready(K, socket, receiver);
+			ready.setVisible(true);
+			ready.setResizable(false);
+			ready.setLocationRelativeTo(null);
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		this.setVisible(false);
+//		dispose();
+
 	}
 
-
-
-	
 }

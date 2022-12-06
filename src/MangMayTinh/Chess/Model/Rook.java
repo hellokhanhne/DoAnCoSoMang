@@ -14,6 +14,8 @@ public class Rook extends Piece {
     public Rook(Point nowPosition, Image image, boolean isBelongToFirstPlayer, Chessboard chessboard) {
         super(nowPosition, image, isBelongToFirstPlayer, chessboard);
     }
+    
+    
 
     @Override
     public void generatePossibleDestination() {

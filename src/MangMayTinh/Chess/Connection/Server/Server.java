@@ -16,14 +16,15 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 @SuppressWarnings("serial")
 public class Server extends javax.swing.JFrame {
 	public static ArrayList<Player> clients = new ArrayList<>();
+	public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
 	public static HashMap<String, Room> rooms = new HashMap<>();
 	Thread listener;
-	ObjectOutputStream sender = null;
-	ObjectInputStream receiver = null;
+
 	MessageType messageType = null;
 
 	public Server() {
@@ -51,28 +52,75 @@ public class Server extends javax.swing.JFrame {
 						try {
 							System.out.println("Waiting client to connect!");
 							Socket socket = serverSocket.accept();
-							sender = new ObjectOutputStream(socket.getOutputStream());
-							receiver = new ObjectInputStream(socket.getInputStream());
-		
+
+							ObjectOutputStream sender = new ObjectOutputStream(socket.getOutputStream());
+							ObjectInputStream receiver = new ObjectInputStream(socket.getInputStream());
+
 							try {
 								Player newClient = new Player(socket, sender, receiver);
-								
-								MessageType  type = (MessageType) receiver.readObject();
-								
-								System.out.println(type);
+								MessageType type = (MessageType) receiver.readObject();
+								System.out.println("TYPE : " + type);
 								switch (type) {
 								case randomNewGame:
 									String str = (String) receiver.readObject();
-									System.out.println(str);
-									sendMessageToClient(MessageType.string, "Connected. Waiting for second player!");
+									sendMessageToClient(MessageType.string, "Connected. Waiting for second player!",
+											sender);
 									Server.addClient(newClient);
 									break;
 								case chooseRoomRequest:
 									String str_2 = (String) receiver.readObject();
-									System.out.println(str_2);
-									sendMessageToClient(MessageType.rooms, rooms);
-									new ClientHandler(socket, sender, receiver).start();
+									String name = (String) receiver.readObject();
+									HashMap<String, Room> responseRoom = new HashMap<>();
+									for (Entry<String, Room> set : rooms.entrySet()) {
+										if (set.getValue().getPlayers().size() > 0) {
+											responseRoom.put(set.getKey(),
+													new Room(set.getValue().getStatus(), set.getValue().getId()));
+										} else {
+											responseRoom.put(set.getKey(), set.getValue());
+										}
+
+									}
+									newClient.name = name;
+									newClient.setRoomReady(false);
+									newClient.localAddress = socket.getRemoteSocketAddress().toString();
+									ClientHandler clientHandler = new ClientHandler(sender, receiver, socket);
+									addClientHandles(clientHandler);
+//									clientHandler.start();
+									sendMessageToClient(MessageType.rooms, responseRoom, sender);
 									break;
+								case updateRoom: {
+									String idRoom = (String) receiver.readObject();
+									System.out.println("id Room : " + idRoom);
+									MangMayTinh.Chess.Model.Room room = Server.rooms.get(idRoom);
+
+									if (room != null) {
+										if (room.getPlayers().size() == 0) {
+											room.setStatus("10");
+										} else if (room.getPlayers().size() == 1) {
+											room.setStatus("20");
+										}
+										if (room.getPlayers().size() < 2) {
+											room.addPlayer(newClient);
+
+											HashMap<String, Room> responseRoom1 = new HashMap<>();
+											for (Entry<String, Room> set : Server.rooms.entrySet()) {
+												if (set.getValue().getPlayers().size() > 0) {
+													Room r = null;
+													responseRoom1.put(set.getKey(), r);
+												} else {
+													responseRoom1.put(set.getKey(), set.getValue());
+												}
+
+											}
+											for (ClientHandler clt : Server.clientHandlers) {
+												clt.sender.writeObject(MessageType.rooms);
+												clt.sender.writeObject(responseRoom1);
+											}
+										}
+									}
+								}
+									break;
+
 								default:
 									break;
 								}
@@ -83,7 +131,6 @@ public class Server extends javax.swing.JFrame {
 
 								e.printStackTrace();
 							}
-							
 
 						} catch (IOException ex) {
 							messageLabel.setText(ex.getLocalizedMessage());
@@ -116,6 +163,10 @@ public class Server extends javax.swing.JFrame {
 		}
 	}
 
+	public static synchronized void addClientHandles(ClientHandler clientHandler) {
+		clientHandlers.add(clientHandler);
+	}
+
 	private InetAddress getInetAddress() {
 		try {
 			Enumeration<NetworkInterface> b = NetworkInterface.getNetworkInterfaces();
@@ -133,7 +184,7 @@ public class Server extends javax.swing.JFrame {
 		return null;
 	}
 
-	private <T> void sendMessageToClient(MessageType type, T data) {
+	private <T> void sendMessageToClient(MessageType type, T data, ObjectOutputStream sender) {
 		try {
 			sender.writeObject(type);
 			sender.writeObject(data);

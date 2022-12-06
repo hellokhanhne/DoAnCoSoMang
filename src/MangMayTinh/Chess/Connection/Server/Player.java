@@ -7,25 +7,49 @@ import MangMayTinh.Chess.Model.Move;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.Serializable;
 import java.net.Socket;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
 
-public class Player extends Thread {
+public class Player extends Thread implements Serializable {
 
     Socket socket;
     ObjectOutputStream sender;
     ObjectInputStream receiver;
+    public String localAddress;
+    public String name;
     boolean isFirstPlayer = false;
     PlayerInterface delegate;
     boolean isReady = false;
+    private boolean isRoomReady = false;
     boolean isRunning = false;
+    
+    public Player() {
+    	
+    }
+    
+    
+    
+    
 
-    public Player(Socket socket, ObjectOutputStream sender, ObjectInputStream receiver) {
+    public Player(String localAddress, String name, boolean isRoomReady) {
+		super();
+		this.localAddress = localAddress;
+		this.name = name;
+		this.setRoomReady(isRoomReady);
+	}
+
+
+
+
+
+	public Player(Socket socket, ObjectOutputStream sender, ObjectInputStream receiver) {
         this.socket = socket;
         this.sender = sender;
         this.receiver = receiver;
+        
     }
 
     @Override
@@ -153,4 +177,31 @@ public class Player extends Thread {
     public void setReceiver(ObjectInputStream receiver) {
         this.receiver = receiver;
     }
+
+
+
+
+
+	@Override
+	public String toString() {
+		return "Player [localAddress=" + localAddress + ", name=" + name + ", isRoomReady=" + isRoomReady() + "]";
+	}
+
+
+
+
+
+	public boolean isRoomReady() {
+		return isRoomReady;
+	}
+
+
+
+
+
+	public void setRoomReady(boolean isRoomReady) {
+		this.isRoomReady = isRoomReady;
+	}
+    
+    
 }
