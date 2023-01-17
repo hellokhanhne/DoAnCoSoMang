@@ -42,7 +42,7 @@ public class Room  implements Serializable {
 	
 	public void addPlayer(Player player) {
 		this.players.add(player);
-		this.status = "" + (Integer.parseInt(this.status) + 1);
+		this.status = "" + (Integer.parseInt(this.status));
 	}
 
 	@Override

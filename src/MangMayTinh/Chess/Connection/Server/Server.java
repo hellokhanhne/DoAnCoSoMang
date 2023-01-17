@@ -16,11 +16,13 @@ import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
+import java.util.Map.Entry;
 
 @SuppressWarnings("serial")
 public class Server extends javax.swing.JFrame {
 	public static ArrayList<Player> clients = new ArrayList<>();
 	public static HashMap<String, Room> rooms = new HashMap<>();
+	public static ArrayList<ClientHandler> clientHandlers = new ArrayList<>();
 	Thread listener;
 	ObjectOutputStream sender = null;
 	ObjectInputStream receiver = null;
@@ -53,13 +55,12 @@ public class Server extends javax.swing.JFrame {
 							Socket socket = serverSocket.accept();
 							sender = new ObjectOutputStream(socket.getOutputStream());
 							receiver = new ObjectInputStream(socket.getInputStream());
-		
+
 							try {
 								Player newClient = new Player(socket, sender, receiver);
-								
-								MessageType  type = (MessageType) receiver.readObject();
-								
-								System.out.println(type);
+								MessageType type = (MessageType) receiver.readObject();
+
+								System.out.println("SERVER : " + type);
 								switch (type) {
 								case randomNewGame:
 									String str = (String) receiver.readObject();
@@ -69,10 +70,25 @@ public class Server extends javax.swing.JFrame {
 									break;
 								case chooseRoomRequest:
 									String str_2 = (String) receiver.readObject();
-									System.out.println(str_2);
-									sendMessageToClient(MessageType.rooms, rooms);
-									new ClientHandler(socket, sender, receiver).start();
+									String name = (String) receiver.readObject();
+									HashMap<String, Room> responseRoom = new HashMap<>();
+									for (Entry<String, Room> set : rooms.entrySet()) {
+
+										responseRoom.put(set.getKey(),
+												new Room(set.getValue().getStatus(), set.getValue().getId()));
+
+									}
+									sender.writeObject(MessageType.rooms);
+									sender.writeObject(responseRoom);
+									newClient.localAddress = socket.getRemoteSocketAddress().toString();
+									newClient.isRoomReady = false;
+									newClient.name = name;
+									ClientHandler clientHandler = new ClientHandler(socket, sender, receiver, newClient,
+											socket.getRemoteSocketAddress().toString());
+									clientHandler.start();
+									addClientHandles(clientHandler);
 									break;
+
 								default:
 									break;
 								}
@@ -83,7 +99,6 @@ public class Server extends javax.swing.JFrame {
 
 								e.printStackTrace();
 							}
-							
 
 						} catch (IOException ex) {
 							messageLabel.setText(ex.getLocalizedMessage());
@@ -114,6 +129,10 @@ public class Server extends javax.swing.JFrame {
 
 			System.out.println("Start a new match");
 		}
+	}
+
+	public static synchronized void addClientHandles(ClientHandler clientHandler) {
+		clientHandlers.add(clientHandler);
 	}
 
 	private InetAddress getInetAddress() {

@@ -9,6 +9,7 @@ import javax.swing.Icon;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.io.Reader;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -43,21 +44,24 @@ public class Room extends JFrame implements ActionListener {
 	Socket socket = null;
 	ObjectInputStream receiver = null;
 	Thread roomThread;
+	Thread listener;
 	JPanel pn;
 	JButton[] bt;
+	HashMap<String, MangMayTinh.Chess.Model.Room> listRooms;
 	String[] stt;
+	Ready ready;
 
 	public Room(Socket socket, ObjectInputStream receiver) {
 		super("Chess - Khanh Sky");
 		this.socket = socket;
-	
+//		this.listener = listener;
 		this.receiver = receiver;
-	
+
 		this.ROOM = 12;
 		this.bt = new JButton[13];
 		this.stt = new String[13];
 		this.init();
-		
+
 	}
 
 	public Container init() {
@@ -87,45 +91,46 @@ public class Room extends JFrame implements ActionListener {
 		this.setDefaultCloseOperation(3);
 		this.setLocationRelativeTo(null);
 		this.setResizable(false);
-		
-		
 
-		roomThread = new Thread(new Runnable() {
+//		roomThread = new Thread(new Runnable() {
+//
+//			@Override
+//			public void run() {
+//				while (true) {
+//					try {
+//						MessageType type = (MessageType) receiver.readObject();
+//						System.out.println(type);
+//						switch (type) {
+//						case rooms:
+//							@SuppressWarnings("unchecked")
+//							HashMap<String, MangMayTinh.Chess.Model.Room> listRooms = (HashMap<String, MangMayTinh.Chess.Model.Room>) receiver
+//									.readObject();
+////							System.out.println(listRooms.toString());
+//							Room.this.listRooms = listRooms;
+//							for (HashMap.Entry<String, MangMayTinh.Chess.Model.Room> set : listRooms.entrySet()) {
+//
+//								MangMayTinh.Chess.Model.Room roomTemp = (MangMayTinh.Chess.Model.Room) set.getValue();
+//								int tempId = Integer.parseInt(roomTemp.getId());
+//								if (tempId <= 12) {
+//									Room.this.stt[tempId] = roomTemp.getStatus();
+//									Room.this.bt[tempId].setText(Room.this.stt[tempId]);
+//									Room.this.bt[tempId].setIcon(Room.this.getIcon(roomTemp.getStatus()));
+//								}
+//							}
+//							break;
+//
+//						default:
+//							break;
+//						}
+//					} catch (Exception e) {
+//
+//					}
+//				}
+//
+//			}
+//		});
 
-			@Override
-			public void run() {
-				while (true) {
-					try {
-						MessageType type = (MessageType) receiver.readObject();
-						switch (type) {
-						case rooms:
-							System.out.println(type);
-						 @SuppressWarnings("unchecked") HashMap<String, MangMayTinh.Chess.Model.Room> listRooms = (HashMap<String, MangMayTinh.Chess.Model.Room>) receiver
-									.readObject();
-							for (HashMap.Entry<String, MangMayTinh.Chess.Model.Room> set : listRooms.entrySet()) {
-
-								MangMayTinh.Chess.Model.Room roomTemp = (MangMayTinh.Chess.Model.Room) set.getValue();
-								int tempId =Integer.parseInt(roomTemp.getId());
-								if (tempId <= 12) {
-									Room.this.stt[tempId] = roomTemp.getStatus();
-									Room.this.bt[tempId].setText(Room.this.stt[tempId]);
-									Room.this.bt[tempId].setIcon(Room.this.getIcon(roomTemp.getStatus()));
-								}
-							}
-							break;
-
-						default:
-							break;
-						}
-					} catch (Exception e) {
-
-					}
-				}
-
-			}
-		});
-		
-		roomThread.start();
+//		roomThread.start();
 
 		return cn;
 	}
@@ -133,8 +138,6 @@ public class Room extends JFrame implements ActionListener {
 	public String getStatusRoom(final int room) {
 		return null;
 	}
-
-
 
 	private Icon getIcon(final String str) {
 		Image image = null;
@@ -149,14 +152,35 @@ public class Room extends JFrame implements ActionListener {
 
 	}
 
+	public void renderRooms(HashMap<String, MangMayTinh.Chess.Model.Room> listRooms) {
+		Room.this.listRooms = listRooms;
+		for (HashMap.Entry<String, MangMayTinh.Chess.Model.Room> set : listRooms.entrySet()) {
+
+			MangMayTinh.Chess.Model.Room roomTemp = (MangMayTinh.Chess.Model.Room) set.getValue();
+			int tempId = Integer.parseInt(roomTemp.getId());
+			if (tempId <= 12) {
+				Room.this.stt[tempId] = roomTemp.getStatus();
+				Room.this.bt[tempId].setText(Room.this.stt[tempId]);
+				Room.this.bt[tempId].setIcon(Room.this.getIcon(roomTemp.getStatus()));
+			}
+		}
+	}
+
 	@Override
 	public void actionPerformed(final ActionEvent e) {
 		final int K = Integer.parseInt(e.getActionCommand());
-		final int I = this.stt[K].charAt(0) - '0';
+		if (listRooms.get("" + K) != null && listRooms.get("" + K).getStatus().equals("20")) {
+			JOptionPane.showMessageDialog(null, "This room already has enough players. Please choose another room.");
+			return;
+		}
+
 		Client.sendMessageToServer(MessageType.updateRoom, "" + K);
+		this.ready = new Ready(K, socket);
+		ready.setLocationRelativeTo(null);
+		ready.setVisible(true);
+		this.setVisible(false);
+		dispose();
+
 	}
 
-
-
-	
 }
